@@ -59,6 +59,7 @@ fn process_transaction(ledger: &mut Ledger, account: &mut Account, transaction: 
             account.hold(tx.amount)
         },
         "resolve" => {
+            // reset transaction state, and release held amount
             let tx = ledger
                 .get_transaction(transaction.tx)
                 .ok_or("Transaction not found")?;
@@ -67,6 +68,7 @@ fn process_transaction(ledger: &mut Ledger, account: &mut Account, transaction: 
             account.release(tx.amount)
         },
         "chargeback" => {
+            // mark transaction as chargeback, withdraw held amount, and lock account
             let tx = ledger
                 .get_transaction(transaction.tx)
                 .ok_or("Transaction not found")?;
