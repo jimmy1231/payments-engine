@@ -32,3 +32,28 @@ impl Ledger {
         self.logs.push((transaction, result));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::transaction::{Transaction, TransactionState};
+
+    fn make_tx(tx_id: u32) -> Transaction {
+        Transaction {
+            r#type: "deposit".to_string(),
+            client: 1,
+            tx: tx_id,
+            amount: 1.0,
+            state: TransactionState::Normal,
+        }
+    }
+
+    #[test]
+    fn append_stores_transaction_and_prevents_duplicates() {
+        let mut ledger = Ledger::new();
+        let tx = make_tx(1);
+        assert!(ledger.append(tx.clone()).is_ok());
+        assert!(ledger.get_transaction(1).is_some());
+        assert!(ledger.append(tx).is_err());
+    }
+}
