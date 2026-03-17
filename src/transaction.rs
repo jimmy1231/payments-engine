@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Deserializer};
 use std::error::Error;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -14,12 +14,24 @@ impl Default for TransactionState {
     }
 }
 
+fn deserialize_amount<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(deserializer)?;
+    match s.as_deref() {
+        Some("") | None => Ok(0.0),
+        Some(s) => s.parse().map_err(serde::de::Error::custom),
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Transaction {
     #[serde(rename = "type")]
     pub r#type: String,
     pub client: u16,
     pub tx: u32,
+    #[serde(deserialize_with = "deserialize_amount")]
     pub amount: f64,
 
     #[serde(skip_deserializing)]

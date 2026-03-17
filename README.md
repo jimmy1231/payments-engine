@@ -33,6 +33,7 @@ C4Component
 - only deposite transactions can be disputed given the requirement that the funds exchanged in the transaction is moved from the available amount to be held (i.e. locking the deposited funds until the dispute is resolved)
 - a transaction can be disputed more than once, and resolved more than once since dispute+resolution does not result in a change to total account balance
 - a transaction can only be __chargedback once__ since a chargeback subtracts funds from the account.
+- handling all transaction types in one function `process_transaction()` - in my opinion, having all states of a transaction in one place improves readability
 
 ### Transaction State
 
