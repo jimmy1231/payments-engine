@@ -75,11 +75,11 @@ mod tests {
     }
 
     #[test]
-    fn deposit_adds_to_available_and_stores_tx() {
+    fn deposit_increases_available_and_persists_tx() {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
-        let tx = make_tx("deposit", 1, 1, 10.0);
 
+        let tx = make_tx("deposit", 1, 1, 10.0);
         process_transaction(&mut ledger, &mut account, tx).unwrap();
 
         assert_eq!(account.available, 10.0);
@@ -87,30 +87,24 @@ mod tests {
     }
 
     #[test]
-    fn withdrawal_subtracts_from_available_and_stores_tx() {
+    fn withdrawal_decreases_available_and_persists_tx() {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
 
-        let deposit_tx = make_tx("deposit", 1, 1, 10.0);
-        process_transaction(&mut ledger, &mut account, deposit_tx).unwrap();
-
-        let tx = make_tx("withdrawal", 1, 2, 4.5);
-        process_transaction(&mut ledger, &mut account, tx).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("deposit", 1, 1, 10.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("withdrawal", 1, 2, 4.5)).unwrap();
 
         assert_eq!(account.available, 5.5);
         assert!(ledger.get_transaction(2).is_some());
     }
 
     #[test]
-    fn dispute_moves_amount_to_held_and_marks_tx_disputed() {
+    fn dispute_moves_funds_to_held_and_marks_tx_disputed() {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
 
-        let deposit_tx = make_tx("deposit", 1, 1, 10.0);
-        process_transaction(&mut ledger, &mut account, deposit_tx).unwrap();
-
-        let dispute_tx = make_tx("dispute", 1, 1, 0.0);
-        process_transaction(&mut ledger, &mut account, dispute_tx).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("deposit", 1, 1, 10.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("dispute", 1, 1, 0.0)).unwrap();
 
         assert_eq!(account.available, 0.0);
         assert_eq!(account.held, 10.0);
@@ -118,18 +112,13 @@ mod tests {
     }
 
     #[test]
-    fn resolve_returns_held_amount_to_available_and_marks_tx_normal() {
+    fn resolve_restores_funds_and_resets_state() {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
 
-        let deposit_tx = make_tx("deposit", 1, 1, 10.0);
-        process_transaction(&mut ledger, &mut account, deposit_tx).unwrap();
-
-        let dispute_tx = make_tx("dispute", 1, 1, 0.0);
-        process_transaction(&mut ledger, &mut account, dispute_tx).unwrap();
-
-        let resolve_tx = make_tx("resolve", 1, 1, 0.0);
-        process_transaction(&mut ledger, &mut account, resolve_tx).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("deposit", 1, 1, 10.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("dispute", 1, 1, 0.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("resolve", 1, 1, 0.0)).unwrap();
 
         assert_eq!(account.available, 10.0);
         assert_eq!(account.held, 0.0);
@@ -141,14 +130,9 @@ mod tests {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
 
-        let deposit_tx = make_tx("deposit", 1, 1, 10.0);
-        process_transaction(&mut ledger, &mut account, deposit_tx).unwrap();
-
-        let dispute_tx = make_tx("dispute", 1, 1, 0.0);
-        process_transaction(&mut ledger, &mut account, dispute_tx).unwrap();
-
-        let chargeback_tx = make_tx("chargeback", 1, 1, 0.0);
-        process_transaction(&mut ledger, &mut account, chargeback_tx).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("deposit", 1, 1, 10.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("dispute", 1, 1, 0.0)).unwrap();
+        process_transaction(&mut ledger, &mut account, make_tx("chargeback", 1, 1, 0.0)).unwrap();
 
         assert_eq!(account.available, 0.0);
         assert_eq!(account.held, 0.0);
@@ -157,15 +141,12 @@ mod tests {
     }
 
     #[test]
-    fn unknown_type_does_not_affect_account_or_ledger() {
+    fn unknown_transaction_type_does_not_change_balances_and_does_not_persist() {
         let mut ledger = Ledger::new();
         let mut account = Account::new(1);
 
-        let tx = make_tx("unknown", 1, 1, 1.0);
-        let result = process_transaction(&mut ledger, &mut account, tx);
+        process_transaction(&mut ledger, &mut account, make_tx("unknown", 1, 1, 1.0)).unwrap();
 
-        // process_transaction always returns Ok after logging; the failure is captured in the log
-        assert!(result.is_ok());
         assert_eq!(account.available, 0.0);
         assert_eq!(account.held, 0.0);
         assert!(ledger.get_transaction(1).is_none());

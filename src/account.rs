@@ -71,3 +71,59 @@ impl Account {
         self.locked = true;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_account() -> Account {
+        Account::new(1)
+    }
+
+    #[test]
+    fn deposit_increases_available_and_truncates() {
+        let mut acct = make_account();
+        acct.deposit(1.23456).unwrap();
+        assert_eq!(acct.available, 1.2345);
+    }
+
+    #[test]
+    fn withdraw_decreases_available_and_errors_when_insufficient() {
+        let mut acct = make_account();
+        acct.deposit(5.0).unwrap();
+        acct.withdraw(1.25).unwrap();
+        assert_eq!(acct.available, 3.75);
+        assert!(acct.withdraw(10.0).is_err());
+    }
+
+    #[test]
+    fn hold_and_release_move_funds_between_available_and_held() {
+        let mut acct = make_account();
+        acct.deposit(10.0).unwrap();
+        acct.hold(6.0).unwrap();
+        assert_eq!(acct.available, 4.0);
+        assert_eq!(acct.held, 6.0);
+
+        acct.release(2.0).unwrap();
+        assert_eq!(acct.available, 6.0);
+        assert_eq!(acct.held, 4.0);
+    }
+
+    #[test]
+    fn withdraw_from_hold_reduces_held_only() {
+        let mut acct = make_account();
+        acct.deposit(10.0).unwrap();
+        acct.hold(5.0).unwrap();
+        acct.withdraw_from_hold(3.0).unwrap();
+        assert_eq!(acct.held, 2.0);
+        assert_eq!(acct.available, 5.0);
+    }
+
+    #[test]
+    fn locked_account_fails_deposit_and_withdraw() {
+        let mut acct = make_account();
+        acct.lock();
+        assert!(acct.deposit(1.0).is_err());
+        assert!(acct.withdraw(1.0).is_err());
+    }
+}
